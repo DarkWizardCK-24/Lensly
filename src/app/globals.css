@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/* Brand: "Ruby & Gold" — rose-to-ruby brand, mint income, coral expense. */
+:root {
+  --background: #fdf6f7;
+  --surface: #ffffff;
+  --surface-muted: #fbeef0;
+  --border: #f1e0e3;
+  --foreground: #1c0f13;
+  --muted: #7a626a;
+  --brand: #c8123a;
+  --brand-soft: #ffe4ea;
+  --gold: #ffb703;
+  --income: #0a7040;
+  --expense: #c0231a;
+  --warning: #b54708;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 8px 24px -12px rgb(16 24 40 / 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #12080b;
+    --surface: #1c1013;
+    --surface-muted: #26161b;
+    --border: #36222a;
+    --foreground: #fbeff1;
+    --muted: #b9a0a8;
+    --brand: #fb7185;
+    --income: #12b76a;
+    --expense: #f04438;
+    --warning: #f79009;
+    --brand-soft: #3a1620;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, #ff7a9a 0%, #e11d48 55%, #881337 100%);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Visual system additions ---- */
+.grad-brand { background: linear-gradient(135deg, #ff7a9a 0%, #e11d48 55%, #881337 100%); }
+.grad-gold { background: linear-gradient(135deg, #ffd166 0%, #ff8a1f 100%); }
+.grad-ember { background: linear-gradient(135deg, #ff9a2f 0%, #e8384f 100%); }
+.grad-income { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
+.grad-expense { background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); }
+.grad-sky { background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%); }
+
+.tile-shadow { box-shadow: 0 10px 22px -10px var(--tile, rgb(225 29 72 / 0.55)); }
+
+.card-lift { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+.card-lift:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--brand) 35%, var(--border)); box-shadow: 0 18px 40px -18px rgb(225 29 72 / 0.35); }
+
+.backdrop-glow::before,
+.backdrop-glow::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  width: 560px;
+  height: 560px;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.backdrop-glow::before { top: -220px; right: -160px; background: radial-gradient(closest-side, rgb(255 138 31 / 0.2), transparent); }
+.backdrop-glow::after { bottom: -240px; left: -180px; background: radial-gradient(closest-side, rgb(225 29 72 / 0.16), transparent); }
+
+.text-gradient { background: linear-gradient(135deg, #ff9a2f, #e11d48); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Keyboard users always see where focus is. */
+:focus-visible { outline: 2px solid var(--brand, #e11d48); outline-offset: 2px; }
+main:focus { outline: none; }
