@@ -94,7 +94,7 @@ export default function UploadPage() {
     if (!token) return patch(it.id, { stage: -1, error: "Please sign in again." });
     try {
       // The server saves the report (statement, transactions, first version) atomically when it is given a Report Book.
-      const res = await processStatement(token, it.file, { password: secrets.current.get(it.id), ocr, bookId: selected, reportName: safeName(it.file.name).replace(/\.[^.]+$/, "") });
+      const res = await processStatement(token, it.file, { password: secrets.current.get(it.id), ocr, bookId: selected, reportName: safeName(it.file.name).replace(/\.[^.]+$/, "").slice(0, 80) });
       const reportId = res.report_id ?? "";
       await refresh();
       patch(it.id, { stage: STAGES.length, unlocked: false, result: { n: res.transactions.length, recon: res.reconciliation.status, warnings: res.warnings, ocrUsed: res.ocr_used, reportId } });
