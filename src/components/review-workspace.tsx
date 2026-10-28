@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCheck, Copy, Download, Pencil, ScanText, Search, X } from "lucide-react";
+import { AlertTriangle, CheckCheck, Copy, Download, Pencil, ScanText, Search, Undo2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { CATEGORIES, EXPENSE_CATS, INCOME_CATS, catOf } from "@/lib/categories";
@@ -63,6 +63,8 @@ export function ReviewWorkspace({ reportName, statement, edits, setEdits }: { re
   const [to, setTo] = useState("");
   const [page, setPage] = useState(0);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  // After a category change: offer the same category for the merchant's other, not-yet-corrected transactions.
+  const [similar, setSimilar] = useState<{ ids: string[]; merchant: string; cat: string } | null>(null);
 
   const rows = useMemo(() => all.filter((t) => {
     if (type === "debit" && !t.debit) return false;
@@ -87,6 +89,20 @@ export function ReviewWorkspace({ reportName, statement, edits, setEdits }: { re
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleAll = () => setSel((s) => { const n = new Set(s); if (allShownSelected) shown.forEach((t) => n.delete(t.id)); else shown.forEach((t) => n.add(t.id)); return n; });
   const ids = [...sel];
+  const selectFiltered = () => setSel(new Set(rows.map((t) => t.id)));
+  const allFilteredSelected = rows.length > 0 && rows.every((t) => sel.has(t.id));
+  const selected = all.filter((t) => sel.has(t.id));
+  const selUnreviewed = selected.filter((t) => !t.reviewed).length;
+  const setReviewed = (list: string[], value: boolean) => {
+    patch(list, (x) => ({ ...x, reviewed: value }));
+    say(value ? `Marked ${list.length} reviewed` : `Marked ${list.length} as not reviewed`);
+    setSel(new Set());
+  };
+  const changeCategory = (t: EffTxn, c: string) => {
+    patch([t.id], (x) => ({ ...x, category: c }));
+    const others = all.filter((o) => o.id !== t.id && o.merchantN === t.merchantN && !!o.credit === !!t.credit && o.category !== c && !edits[o.id]?.category).map((o) => o.id);
+    setSimilar(others.length ? { ids: others, merchant: t.merchantN, cat: c } : null);
+  };
 
   const exportCsv = () => {
     const src = sel.size ? all.filter((t) => sel.has(t.id)) : rows;
@@ -113,17 +129,28 @@ export function ReviewWorkspace({ reportName, statement, edits, setEdits }: { re
           <select value={only} onChange={(e) => { setOnly(e.target.value as typeof only); setPage(0); }} aria-label="Status filter" className={sel_}><option value="all">All statuses</option><option value="attention">Needs attention</option><option value="unreviewed">Not reviewed</option></select>
           <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} aria-label="From date" className={sel_} />
           <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} aria-label="To date" className={sel_} />
+          <button onClick={allFilteredSelected ? () => setSel(new Set()) : selectFiltered} disabled={rows.length === 0} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-bold hover:bg-surface-muted disabled:opacity-40"><CheckCheck size={15} /> {allFilteredSelected ? "Deselect all" : `Select all ${rows.length}`}</button>
           <button onClick={exportCsv} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-bold hover:bg-surface-muted"><Download size={15} /> Export {sel.size ? `${sel.size} selected` : "filtered"}</button>
         </div>
       </div>
 
+      {similar && (
+        <div role="status" className="card flex flex-wrap items-center gap-3 border-brand/40 p-3 text-sm">
+          <span>Set <strong>{catOf(similar.cat).name}</strong> for the other <strong>{similar.ids.length}</strong> {similar.merchant} transaction{similar.ids.length === 1 ? "" : "s"} too?</span>
+          <button onClick={() => { patch(similar.ids, (x) => ({ ...x, category: similar.cat })); say(`Category set for ${similar.ids.length} more`); setSimilar(null); }} className="inline-flex h-9 items-center rounded-xl bg-brand px-4 font-bold text-white">Apply to all</button>
+          <button onClick={() => setSimilar(null)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl px-3 font-semibold text-muted hover:bg-surface-muted"><X size={15} /> No thanks</button>
+        </div>
+      )}
+
       {sel.size > 0 && (
         <div role="region" aria-label="Bulk actions" className="card sticky top-16 z-10 flex flex-wrap items-center gap-3 border-brand/40 p-3 lg:top-3">
           <strong className="text-sm">{sel.size} selected</strong>
+          {!allFilteredSelected && rows.length > sel.size && <button onClick={selectFiltered} className="text-sm font-bold text-brand hover:underline">Select all {rows.length} matching</button>}
           <select defaultValue="" onChange={(e) => { if (e.target.value) { patch(ids, (x) => ({ ...x, category: e.target.value })); say(`Category set for ${ids.length}`); e.target.value = ""; } }} aria-label="Bulk category" className={sel_}>
             <option value="" disabled>Set category…</option>{CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <button onClick={() => { patch(ids, (x) => ({ ...x, reviewed: true })); say(`Marked ${ids.length} reviewed`); }} className="inline-flex h-10 items-center gap-2 rounded-xl bg-income px-4 text-sm font-bold text-white"><CheckCheck size={15} /> Mark reviewed</button>
+          {selUnreviewed > 0 && <button onClick={() => setReviewed(selected.filter((t) => !t.reviewed).map((t) => t.id), true)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-income px-4 text-sm font-bold text-white"><CheckCheck size={15} /> Mark {selUnreviewed} reviewed</button>}
+          {selected.length > selUnreviewed && <button onClick={() => setReviewed(selected.filter((t) => t.reviewed).map((t) => t.id), false)} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-bold hover:bg-surface-muted"><Undo2 size={15} /> Mark {selected.length - selUnreviewed} not reviewed</button>}
           <button onClick={() => setSel(new Set())} className="ml-auto inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-surface-muted"><X size={15} /> Clear</button>
         </div>
       )}
@@ -145,7 +172,7 @@ export function ReviewWorkspace({ reportName, statement, edits, setEdits }: { re
                 <td className="whitespace-nowrap p-3 text-muted">{fmtDate(t.date)}</td>
                 <td className="p-3"><EditableMerchant t={t} onSave={(v) => patch([t.id], (x) => ({ ...x, merchant: v }))} />
                   <p className="mt-0.5 max-w-[260px] truncate font-mono text-[11px] text-muted" title={`Original: ${t.raw}`}>Original: {t.raw}</p></td>
-                <td className="p-3"><CategorySelect t={t} onChange={(c) => patch([t.id], (x) => ({ ...x, category: c }))} /></td>
+                <td className="p-3"><CategorySelect t={t} onChange={(c) => changeCategory(t, c)} /></td>
                 <td className="p-3 text-right font-semibold text-expense">{t.debit ? money(t.debit, 2) : ""}</td>
                 <td className="p-3 text-right font-semibold text-income">{t.credit ? money(t.credit, 2) : ""}</td>
                 <td className="p-3 text-right text-muted">{t.balance === null ? "—" : money(t.balance, 2)}</td>
@@ -170,7 +197,7 @@ export function ReviewWorkspace({ reportName, statement, edits, setEdits }: { re
                 </div>
                 <p className="text-xs text-muted">{fmtDate(t.date)}{t.balance === null ? "" : ` · Balance ${money(t.balance, 2)}`}</p>
                 <p className="mt-0.5 truncate font-mono text-[11px] text-muted">Original: {t.raw}</p>
-                <div className="mt-2"><CategorySelect t={t} onChange={(c) => patch([t.id], (x) => ({ ...x, category: c }))} /></div>
+                <div className="mt-2"><CategorySelect t={t} onChange={(c) => changeCategory(t, c)} /></div>
                 <div className="mt-2 flex flex-wrap items-center gap-2"><Flags t={t} />
                   {!t.reviewed && <button onClick={() => patch([t.id], (x) => ({ ...x, reviewed: true }))} className="text-xs font-bold text-brand">Mark reviewed</button>}</div>
               </div>
