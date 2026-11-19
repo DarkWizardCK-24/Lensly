@@ -17,6 +17,8 @@ Lensly turns bank statements into clear spending insights and evidence-based sav
 
 ---
 
+<p align="center"><img src="docs/thumbnails/lensly-thumb-1-hero.png" alt="Lensly: know where your money goes. Upload PDF, CSV and Excel bank statements, reconcile balances and get savings ideas" width="900"></p>
+
 Part of the **Finance Platform**, alongside **Ledgerly** (multi-ledger CashBook) and **Ledgerline** (double-entry accounting). One account signs in to all three.
 
 ## Screenshots
